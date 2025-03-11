@@ -14,6 +14,8 @@ from argparse import Namespace
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Type, Union
 
+
+from yt_dlp import YoutubeDL
 from yt_dlp.postprocessor.modify_chapters import ModifyChaptersPP
 from yt_dlp.postprocessor.sponsorblock import SponsorBlockPP
 
@@ -880,3 +882,11 @@ class Downloader:
                 f"{song.url} - {exception.__class__.__name__}: {exception}"
             )
             return song, None
+        finally:
+            try:
+                # Fix memory leak caused by YT-DLP not being closed
+                # See https://github.com/yt-dlp/yt-dlp/issues/1949
+                if audio_downloader and audio_downloader.audio_handler and isinstance(audio_downloader.audio_handler, YoutubeDL):
+                    audio_downloader.audio_handler.close()
+            except Exception as exception:
+                logger.error("Exception while closing audio provider")
